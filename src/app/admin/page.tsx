@@ -27,18 +27,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trash2, UserPlus, PlusCircle, Settings, Loader2 } from 'lucide-react';
+import { Trash2, UserPlus, PlusCircle, Settings, Loader2, Users, GraduationCap, BookOpen } from 'lucide-react';
 import { ManageClassDialog } from '@/components/admin/ManageClassDialog';
-import { collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, where, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import type { UserProfile, Class as ClassType, UserRole } from '@/lib/types';
+import type { UserProfile, Class as ClassType, UserRole, Test } from '@/lib/types';
 import withAuth from '@/components/auth/withAuth';
 import AppHeader from '@/components/AppHeader';
 
 function AdminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('student');
   const [newClassName, setNewClassName] = useState('');
@@ -50,10 +51,10 @@ function AdminDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
+    setIsLoading(true);
     const unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
       const usersData = snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as UserProfile));
       setUsers(usersData);
-      setIsLoading(false);
     });
 
     const unsubClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
@@ -61,9 +62,20 @@ function AdminDashboard() {
       setClasses(classesData);
     });
 
+    const unsubTests = onSnapshot(collection(db, "tests"), (snapshot) => {
+      const testsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Test));
+      setTests(testsData);
+    });
+    
+    // Set loading to false once all initial data is likely fetched.
+    // A more robust solution might use Promise.all with getDocs for initial load.
+    const timer = setTimeout(() => setIsLoading(false), 1500);
+
     return () => {
       unsubUsers();
       unsubClasses();
+      unsubTests();
+      clearTimeout(timer);
     };
   }, []);
 
@@ -189,6 +201,9 @@ function AdminDashboard() {
     }
   };
 
+  const teacherCount = users.filter(u => u.role === 'teacher').length;
+  const studentCount = users.filter(u => u.role === 'student').length;
+
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
@@ -198,6 +213,44 @@ function AdminDashboard() {
     <div className="flex flex-col min-h-screen bg-muted/40">
       <AppHeader title="Admin Dashboard" />
       <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="grid gap-6 mb-8 md:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{users.length}</div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Teachers</CardTitle>
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{teacherCount}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Students</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{studentCount}</div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{tests.length}</div>
+                </CardContent>
+            </Card>
+        </div>
         <div className="grid gap-8 md:grid-cols-2">
           <Card>
             <CardHeader>
