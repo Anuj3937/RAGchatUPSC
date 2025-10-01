@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import withAuth from '@/components/auth/withAuth';
 import AppHeader from '@/components/AppHeader';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 
 function ProfilePage() {
   const { user } = useAuth();
@@ -20,6 +20,47 @@ function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setInstallPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      // Hide the install button if the app is installed
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) {
+      return;
+    }
+    // Show the install prompt
+    installPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+    // We can only use the prompt once, so clear it.
+    setInstallPrompt(null);
+  };
+
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +126,23 @@ function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          {installPrompt && (
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>Download App</CardTitle>
+                <CardDescription>
+                  Install the UPSC Prep Portal on your device for a better experience, including offline access.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleInstallClick}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Install App
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           
           <Card className="mt-8">
             <CardHeader>
