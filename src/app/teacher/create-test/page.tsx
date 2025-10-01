@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef } from "react";
@@ -83,8 +84,9 @@ function CreateTestPage() {
       reader.onload = (e) => {
         const fileState = { name: selectedFile.name, dataUri: e.target?.result as string };
         setFile(fileState);
-        if (!currentPrompt) setCurrentPrompt(fileState.name.replace('.pdf', ''));
-        if (!testName) setTestName(fileState.name.replace('.pdf', ''));
+        const fileNameWithoutExt = selectedFile.name.split('.').slice(0, -1).join('.');
+        if (!currentPrompt) setCurrentPrompt(fileNameWithoutExt);
+        if (!testName) setTestName(fileNameWithoutExt);
       };
       reader.readAsDataURL(selectedFile);
     }
@@ -255,10 +257,10 @@ function CreateTestPage() {
                   )}
                 </div>
                 
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} title="Upload PDF">
-                  <FileUp className="mr-2 h-4 w-4" /> Upload PDF
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} title="Upload File">
+                  <FileUp className="mr-2 h-4 w-4" /> Upload File
                 </Button>
-                <input id="file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden"/>
+                <input id="file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden"/>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -363,3 +365,5 @@ function CreateTestPage() {
 }
 
 export default withAuth(CreateTestPage, ['teacher']);
+
+
